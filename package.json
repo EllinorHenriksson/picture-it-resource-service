@@ -1,0 +1,32 @@
+{
+  "name": "auth-service",
+  "version": "1.0.0",
+  "description": "The auth service is responsible for handling accounts and handing out JWTs upon successful authentication.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon --inspect -r dotenv/config src/server.js",
+    "lint": "npx eslint ./src || exit 0",
+    "lint:fix": "npx eslint ./src --fix || exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.lnu.se:1dv026/student/eh224kr/assignment-b3-picture-it/auth-service.git"
+  },
+  "author": "Ellinor Henriksson <eh224kr@student.lnu.se",
+  "private": true,
+  "dependencies": {
+    "express": "^4.17.2",
+    "helmet": "^5.0.1",
+    "http-errors": "^2.0.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.1.7",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "@lnu/eslint-config": "^1.1.4",
+    "dotenv": "^14.2.0",
+    "nodemon": "^2.0.15"
+  }
+}
