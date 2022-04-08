@@ -38,11 +38,11 @@ export class ImgController {
    * @param {Function} next - Express next middleware function.
    */
   #validateData (req, next) {
-    if (!req.data || !req.contentType) {
+    if (!req.body.data || !req.body.contentType) {
       next(createError(400, 'Data and/or content type not provided.'))
-    } else if (!isBase64(req.data)) {
+    } else if (!isBase64(req.body.data)) {
       next(createError(400, 'The provided data must be base64 endoded.'))
-    } else if (req.contentType !== 'image/gif' && req.contentType !== 'image/jpeg' && req.contentType !== 'image/png') {
+    } else if (req.body.contentType !== 'image/gif' && req.body.contentType !== 'image/jpeg' && req.body.contentType !== 'image/png') {
       next(createError(400, 'The provided content type is not valid.'))
     }
   }
@@ -57,8 +57,8 @@ export class ImgController {
   async #contactImageServer (req, method) {
     // Create body for request to image server.
     const reqBodyImageServer = {
-      data: req.data,
-      contentType: req.contentType
+      data: req.body.data,
+      contentType: req.body.contentType
     }
 
     // Send request to image server and return response.
@@ -160,6 +160,11 @@ export class ImgController {
         // Send response to client.
         res.status(201).json(resBodyClient)
       } else if (resImageServer.status >= 400) {
+        console.error(
+          'Status: ' + resBodyImageServer.status_code +
+          '\nMessage: ' + resBodyImageServer.message
+        )
+
         next(createError(500))
       }
     } catch (error) {
@@ -194,34 +199,22 @@ export class ImgController {
       // Contact image server.
       const resImageServer = await this.#contactImageServer(req, 'put')
 
-      // Save response body as an object.
-      const resBodyImageServer = await resImageServer.json()
-
-      // If image successfully created at image server...
-      if (resImageServer.status === 201) {
-        // ...save image in resource database.
-        const image = new Image({
-          imageUrl: resBodyImageServer.imageUrl,
-          imageId: resBodyImageServer.id,
-          description: req.body.description,
-          location: req.body.location,
-          owner: req.user
-        })
-
-        await image.save()
-
-        // Create body for response to client.
-        const resBodyClient = {
-          imageUrl: image.imageUrl,
-          contentType: resBodyImageServer.contentType,
-          createdAt: image.createdAt,
-          updatedAt: image.updatedAt,
-          id: image.id
-        }
+      // If image successfully updated at image server...
+      if (resImageServer.status === 204) {
+        // ...update image in resource database.
+        req.image.description = req.body.description
+        req.image.location = req.body.location
+        await req.image.save()
 
         // Send response to client.
-        res.status(201).json(resBodyClient)
+        res.status(204)
       } else if (resImageServer.status >= 400) {
+        const resBodyImageServer = await resImageServer.json()
+        console.error(
+          'Status: ' + resBodyImageServer.status_code +
+          '\nMessage: ' + resBodyImageServer.message
+        )
+
         next(createError(500))
       }
     } catch (error) {
