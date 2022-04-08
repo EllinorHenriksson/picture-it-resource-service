@@ -20,6 +20,18 @@ const URL_IMAGE_SERVER = 'https://courselab.lnu.se/picture-it/images/api/v1/imag
  */
 export class ImgController {
   /**
+   * Alters an image object by removing the properties imageId and owner.
+   *
+   * @param {object} image The original image object.
+   * @returns {object} The altered image object.
+   */
+  #alterImage (image) {
+    delete image.imageId
+    delete image.owner
+    return image
+  }
+
+  /**
    * Validates the data in the request body.
    *
    * @param {object} req - Express request object.
@@ -96,9 +108,7 @@ export class ImgController {
       const images = await Image.find({ owner: req.user })
 
       const alteredImages = images.map(img => {
-        delete img.imageId
-        delete img.owner
-        return img
+        return this.#alterImage(img)
       })
 
       res.status(200).json(alteredImages)
@@ -165,7 +175,8 @@ export class ImgController {
    * @param {Function} next - Express next middleware function.
    */
   readImage (req, res, next) {
-    res.status(200).json(req.image)
+    const alteredImage = this.#alterImage(req.image)
+    res.status(200).json(alteredImage)
   }
 
   /**
