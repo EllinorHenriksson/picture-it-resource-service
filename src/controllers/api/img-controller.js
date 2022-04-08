@@ -18,6 +18,47 @@ const { isBase64 } = validator
  */
 export class ImgController {
   /**
+   * Validates the data in the request body.
+   *
+   * @param {object} req - Express request object.
+   * @param {Function} next - Express next middleware function.
+   */
+  #validateData (req, next) {
+    if (!req.data || !req.contentType) {
+      next(createError(400, 'Data and/or content type not provided.'))
+    } else if (!isBase64(req.data)) {
+      next(createError(400, 'The provided data must be base64 endoded.'))
+    } else if (req.contentType !== 'image/gif' && req.contentType !== 'image/jpeg' && req.contentType !== 'image/png') {
+      next(createError(400, 'The provided content type is not valid.'))
+    }
+  }
+
+  /**
+   * Sends a request to the image server and returns the response.
+   *
+   * @param {object} req - Express request object.
+   * @param {string} method - The request method.
+   * @returns {Promise} - A promise that will resolve to a response object.
+   */
+  async #contactImageServer (req, method) {
+    // Create body for request to image server.
+    const reqBodyImageServer = {
+      data: req.data,
+      contentType: req.contentType
+    }
+
+    // Send request to image server and return response.
+    return fetch('https://courselab.lnu.se/picture-it/images/api/v1/images', {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Private-Token': process.env.ACCESS_TOKEN_IMAGE_API
+      },
+      body: JSON.stringify(reqBodyImageServer)
+    })
+  }
+
+  /**
    * Provide req.image to the route if :id is present.
    *
    * @param {object} req - Express request object.
@@ -68,35 +109,16 @@ export class ImgController {
   async createImage (req, res, next) {
     try {
       // Validate body content.
-      if (!req.data || !req.contentType) {
-        next(createError(400, 'Data and/or content type not provided.'))
-      } else if (!isBase64(req.data)) {
-        next(createError(400, 'The provided data must be base64 endoded.'))
-      } else if (req.contentType !== 'image/gif' && req.contentType !== 'image/jpeg' && req.contentType !== 'image/png') {
-        next(createError(400, 'The provided content type is not valid.'))
-      }
+      this.#validateData(req, next)
 
-      // Create body for request to image server.
-      const reqBodyImageServer = {
-        data: req.data,
-        contentType: req.contentType
-      }
+      // Contact image server.
+      const resImageServer = await this.#contactImageServer(req, 'post')
 
-      // Send request to image server.
-      const response = await fetch('https://courselab.lnu.se/picture-it/images/api/v1/images', {
-        method: 'post',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Private-Token': process.env.ACCESS_TOKEN_IMAGE_API
-        },
-        body: JSON.stringify(reqBodyImageServer)
-      })
-
-      // Save response body from image server as an object.
-      const resBodyImageServer = await response.json()
+      // Save response body as an object.
+      const resBodyImageServer = await resImageServer.json()
 
       // If image successfully created at image server...
-      if (response.status === 201) {
+      if (resImageServer.status === 201) {
         // ...save image in resource database.
         const image = new Image({
           imageUrl: resBodyImageServer.imageUrl,
@@ -119,7 +141,7 @@ export class ImgController {
 
         // Send response to client.
         res.status(201).json(resBodyClient)
-      } else if (response.status >= 400) {
+      } else if (resImageServer.status >= 400) {
         next(createError(500))
       }
     } catch (error) {
