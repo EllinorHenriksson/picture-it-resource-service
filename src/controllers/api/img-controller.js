@@ -38,12 +38,28 @@ export class ImgController {
    * @param {Function} next - Express next middleware function.
    */
   #validateData (req, next) {
-    if (!req.body.data || !req.body.contentType) {
-      next(createError(400, 'Data and/or content type not provided.'))
-    } else if (!isBase64(req.body.data)) {
-      next(createError(400, 'The provided data must be base64 endoded.'))
-    } else if (req.body.contentType !== 'image/gif' && req.body.contentType !== 'image/jpeg' && req.body.contentType !== 'image/png') {
-      next(createError(400, 'The provided content type is not valid.'))
+    if (!req.body) {
+      next(createError(400), 'No body content provided.')
+    }
+
+    if (req.method === 'POST' || req.method === 'PUT') {
+      if (!req.body.data || !req.body.contentType) {
+        next(createError(400, 'Data and/or content type not provided.'))
+      } else if (!isBase64(req.body.data)) {
+        next(createError(400, 'The provided data must be base64 endoded.'))
+      } else if (req.body.contentType !== 'image/gif' && req.body.contentType !== 'image/jpeg' && req.body.contentType !== 'image/png') {
+        next(createError(400, 'The provided content type is not valid.'))
+      }
+    }
+
+    if (req.method === 'PATCH') {
+      if (!req.body.data && !req.body.contentType && !req.body.description && req.body.location) {
+        next(createError(400, 'None of the requested data is provided.'))
+      } else if (req.body.data && !isBase64(req.body.data)) {
+        next(createError(400, 'The provided data must be base64 endoded.'))
+      } else if (req.body.contentType && (req.body.contentType !== 'image/gif' && req.body.contentType !== 'image/jpeg' && req.body.contentType !== 'image/png')) {
+        next(createError(400, 'The provided content type is not valid.'))
+      }
     }
   }
 
@@ -51,19 +67,21 @@ export class ImgController {
    * Sends a request to the image server and returns the response.
    *
    * @param {object} req - Express request object.
-   * @param {string} method - The request method.
    * @returns {Promise} - A promise that will resolve to a response object.
    */
-  async #contactImageServer (req, method) {
+  async #contactImageServer (req) {
     // Create body for request to image server.
-    const reqBodyImageServer = {
-      data: req.body.data,
-      contentType: req.body.contentType
+    const reqBodyImageServer = {}
+    if (req.body.data) {
+      reqBodyImageServer.data = req.body.data
+    }
+    if (req.body.contentType) {
+      reqBodyImageServer.contentType = req.body.contentType
     }
 
     // Send request to image server and return response.
     return fetch(URL_IMAGE_SERVER + req.image.imageId, {
-      method: method,
+      method: req.method,
       headers: {
         'Content-Type': 'application/json',
         'X-API-Private-Token': process.env.ACCESS_TOKEN_IMAGE_API
@@ -130,7 +148,7 @@ export class ImgController {
       this.#validateData(req, next)
 
       // Contact image server.
-      const resImageServer = await this.#contactImageServer(req, 'post')
+      const resImageServer = await this.#contactImageServer(req)
 
       // Save response body as an object.
       const resBodyImageServer = await resImageServer.json()
@@ -197,7 +215,7 @@ export class ImgController {
       this.#validateData(req, next)
 
       // Contact image server.
-      const resImageServer = await this.#contactImageServer(req, 'put')
+      const resImageServer = await this.#contactImageServer(req)
 
       // If image successfully updated at image server...
       if (resImageServer.status === 204) {
@@ -216,6 +234,60 @@ export class ImgController {
         )
 
         next(createError(500))
+      }
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Partially updates a specific image.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async updateImgPatch (req, res, next) {
+    try {
+      // Validate body content.
+      this.#validateData(req, next)
+
+      let updated = false
+
+      // Update image server if data or content type is provided.
+      if (req.body.data || req.body.contentType) {
+        // Contact image server.
+        const resImageServer = await this.#contactImageServer(req)
+
+        // If image successfully updated at image server...
+        if (resImageServer.status === 204) {
+          updated = true
+        } else if (resImageServer.status >= 400) {
+          const resBodyImageServer = await resImageServer.json()
+          console.error(
+            'Status: ' + resBodyImageServer.status_code +
+            '\nMessage: ' + resBodyImageServer.message
+          )
+          next(createError(500))
+        }
+      }
+
+      // Update image if description or location is provided.
+      if (req.body.description || req.body.location) {
+        if (req.body.description) {
+          req.image.description = req.body.description
+        }
+        if (req.body.location) {
+          req.image.location = req.body.location
+        }
+        await req.image.save()
+        updated = true
+      }
+
+      if (updated) {
+        res.status(204)
+      } else {
+        next(createError(400))
       }
     } catch (error) {
       next(error)
