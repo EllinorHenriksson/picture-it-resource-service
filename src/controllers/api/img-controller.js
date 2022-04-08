@@ -48,7 +48,7 @@ export class ImgController {
    * @param {object} res - Express response object.
    * @param {Function} next - Express next middleware function.
    */
-  async readImage (req, res, next) {
+  async readImages (req, res, next) {
     try {
       const images = await Image.find({ owner: req.user })
 
@@ -67,14 +67,7 @@ export class ImgController {
    */
   async createImage (req, res, next) {
     try {
-      /* OBS! The payload in the request:
-      "data": "CP4ACwgcSLCgwYMIEypcyLChw4cQI0qcSLGixYsYM2rcyLGjx48gQyoEQFKkRpIlTV5Em...",
-      "contentType": "image/gif",
-      "description": "The mighty monkey!",
-      "location": "56.660213604736484, 16.35623696306458"
-      */
-
-      // Fetch: POST image data to image service, save the response (the image URL)
+      // Validate body content.
       if (!req.data || !req.contentType) {
         next(createError(400, 'Data and/or content type not provided.'))
       } else if (!isBase64(req.data)) {
@@ -89,6 +82,7 @@ export class ImgController {
         contentType: req.contentType
       }
 
+      // Send request to image server.
       const response = await fetch('https://courselab.lnu.se/picture-it/images/api/v1/images', {
         method: 'post',
         headers: {
@@ -98,7 +92,7 @@ export class ImgController {
         body: JSON.stringify(reqBodyImageServer)
       })
 
-      // Save response body from image server as object.
+      // Save response body from image server as an object.
       const resBodyImageServer = await response.json()
 
       // If image successfully created at image server...
@@ -123,6 +117,7 @@ export class ImgController {
           id: image.id
         }
 
+        // Send response to client.
         res.status(201).json(resBodyClient)
       } else if (response.status >= 400) {
         next(createError(500))
@@ -130,5 +125,16 @@ export class ImgController {
     } catch (error) {
       next(error)
     }
+  }
+
+  /**
+   * Sends a JSON response with the requested image.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  readImage (req, res, next) {
+    res.status(200).json(req.image)
   }
 }
