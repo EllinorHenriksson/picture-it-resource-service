@@ -33,11 +33,10 @@ const authenticateJWT = (req, res, next) => {
       throw new Error('Invalid authentication scheme.')
     }
 
-    const publicKey = Buffer.from(process.env.ACCESS_TOKEN_SECRET, 'base64')
+    const publicKey = Buffer.from(process.env.PUBLIC_KEY, 'base64')
 
     const payload = jwt.verify(token, publicKey)
 
-    // OBS! Kolla om det verkligen behövs att user sparas på req
     req.user = {
       username: payload.sub,
       firstName: payload.given_name,

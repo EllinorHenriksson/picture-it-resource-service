@@ -12,7 +12,6 @@ import validator from 'validator'
 import { Image } from '../../models/image.js'
 
 const { isBase64 } = validator
-const { isMimeType } = validator
 
 /**
  * Encapsulates a controller.
@@ -56,41 +55,54 @@ export class ImgController {
         next(createError(400, 'Data and/or content type not provided.'))
       } else if (!isBase64(req.data)) {
         next(createError(400, 'The provided data must be base64 endoded.'))
-      } else if (!isMimeType(req.contentType)) {
+      } else if (req.contentType !== 'image/gif' && req.contentType !== 'image/jpeg' && req.contentType !== 'image/png') {
         next(createError(400, 'The provided content type is not valid.'))
       }
 
-      // OBS! Kolla vad som ska vara med i bodyn som skickas med POST till image service
-      const body = {
-        data: req.data
+      // Create body for request to image server.
+      const reqBodyImageServer = {
+        data: req.data,
+        contentType: req.contentType
       }
 
-      const response = await fetch('https://courselab.lnu.se/picture-it/images/api/v1/', {
+      const response = await fetch('https://courselab.lnu.se/picture-it/images/api/v1/images', {
         method: 'post',
-        body: JSON.stringify(body),
-        // OBS! Kolla vad som ska stå i content-type headern
-        // headers: {'Content-Type': 'application/json'}
-        headers: { 'Content-Type': req.contentType }
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Private-Token': process.env.ACCESS_TOKEN_IMAGE_API
+        },
+        body: JSON.stringify(reqBodyImageServer)
       })
 
-      // Kolla hur response-bodyn ser ut, använd image URL till att skapa Image nedan
+      // Save response body from image server as object.
+      const resBodyImageServer = await response.json()
 
-      const task = new Image({
-        imageUrl: undefined,
-        description: req.body.description,
-        location: req.body.location
-      })
+      // If image successfully created at image server...
+      if (response.status === 201) {
+        // ...save image in resource database.
+        const image = new Image({
+          imageUrl: resBodyImageServer.imageUrl,
+          imageId: resBodyImageServer.id,
+          description: req.body.description,
+          location: req.body.location,
+          owner: req.user.username
+        })
 
-      await task.save()
+        await image.save()
 
-      const location = new URL(
-        `${req.protocol}://${req.get('host')}${req.baseUrl}/${task._id}`
-      )
+        // Create body for response to client.
+        const resBodyClient = {
+          imageUrl: image.imageUrl,
+          contentType: resBodyImageServer.contentType,
+          createdAt: image.createdAt,
+          updatedAt: image.updatedAt,
+          id: image.id
+        }
 
-      res
-        .location(location.href)
-        .status(201)
-        .json(task)
+        res.status(201).json(resBodyClient)
+      } else if (response.status >= 400) {
+        next(createError(500))
+      }
     } catch (error) {
       next(error)
     }
