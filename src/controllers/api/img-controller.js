@@ -70,24 +70,31 @@ export class ImgController {
    * @returns {Promise} - A promise that will resolve to a response object.
    */
   async #contactImageServer (req) {
-    // Create body for request to image server.
-    const reqBodyImageServer = {}
-    if (req.body.data) {
-      reqBodyImageServer.data = req.body.data
+    // Create an options object for the request.
+    const options = {
+      method: req.method,
+      headers: {
+        'X-API-Private-Token': process.env.ACCESS_TOKEN_IMAGE_API
+      }
     }
-    if (req.body.contentType) {
-      reqBodyImageServer.contentType = req.body.contentType
+
+    // Create a body object for the request.
+    const body = {}
+    if (req.body?.data) {
+      body.data = req.body.data
+    }
+    if (req.body?.contentType) {
+      body.contentType = req.body.contentType
+    }
+
+    // If the body object is not empty...
+    if (Object.keys(body).length) {
+      // ...add it to a body property of the options object.
+      options.body = JSON.stringify(body)
     }
 
     // Send request to image server and return response.
-    return fetch(URL_IMAGE_SERVER + req.image.imageId, {
-      method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Private-Token': process.env.ACCESS_TOKEN_IMAGE_API
-      },
-      body: JSON.stringify(reqBodyImageServer)
-    })
+    return fetch(URL_IMAGE_SERVER + req.image.imageId, options)
   }
 
   /**
@@ -209,7 +216,7 @@ export class ImgController {
    * @param {object} res - Express response object.
    * @param {Function} next - Express next middleware function.
    */
-  async updateImgPut (req, res, next) {
+  async updateImagePut (req, res, next) {
     try {
       // Validate body content.
       this.#validateData(req, next)
@@ -247,7 +254,7 @@ export class ImgController {
    * @param {object} res - Express response object.
    * @param {Function} next - Express next middleware function.
    */
-  async updateImgPatch (req, res, next) {
+  async updateImagePatch (req, res, next) {
     try {
       // Validate body content.
       this.#validateData(req, next)
@@ -291,6 +298,21 @@ export class ImgController {
       }
     } catch (error) {
       next(error)
+    }
+  }
+
+  /**
+   * Deletes a specific image.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async deleteImage (req, res, next) {
+    try {
+      // Fetch
+    } catch (error) {
+      
     }
   }
 }
