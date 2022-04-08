@@ -189,7 +189,6 @@ export class ImgController {
           'Status: ' + resBodyImageServer.status_code +
           '\nMessage: ' + resBodyImageServer.message
         )
-
         next(createError(500))
       }
     } catch (error) {
@@ -222,10 +221,10 @@ export class ImgController {
       this.#validateData(req, next)
 
       // Contact image server.
-      const resImageServer = await this.#contactImageServer(req)
+      const response = await this.#contactImageServer(req)
 
       // If image successfully updated at image server...
-      if (resImageServer.status === 204) {
+      if (response.status === 204) {
         // ...update image in resource database.
         req.image.description = req.body.description
         req.image.location = req.body.location
@@ -233,13 +232,12 @@ export class ImgController {
 
         // Send response to client.
         res.status(204)
-      } else if (resImageServer.status >= 400) {
-        const resBodyImageServer = await resImageServer.json()
+      } else if (response.status >= 400) {
+        const responseBody = await response.json()
         console.error(
-          'Status: ' + resBodyImageServer.status_code +
-          '\nMessage: ' + resBodyImageServer.message
+          'Status: ' + responseBody.status_code +
+          '\nMessage: ' + responseBody.message
         )
-
         next(createError(500))
       }
     } catch (error) {
