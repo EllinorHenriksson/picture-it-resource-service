@@ -18,6 +18,30 @@ const { isBase64 } = validator
  */
 export class ImgController {
   /**
+   * Provide req.image to the route if :id is present.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   * @param {string} id - The ID of the image to load.
+   */
+  async loadImage (req, res, next, id) {
+    try {
+      const image = await Image.findById(id)
+
+      if (!image) {
+        next(createError(404, 'The requested resource was not found.'))
+      }
+
+      req.image = image
+
+      next()
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
    * Sends a JSON response with all images.
    *
    * @param {object} req - Express request object.
