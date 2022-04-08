@@ -310,9 +310,23 @@ export class ImgController {
    */
   async deleteImage (req, res, next) {
     try {
-      // Fetch
+      const response = await this.#contactImageServer(req)
+      if (response.status === 204) {
+        // ...delete image in resource database.
+        await Image.findByIdAndDelete(req.image.id)
+
+        // Send response to client.
+        res.status(204)
+      } else if (response.status >= 400) {
+        const responseBody = await response.json()
+        console.error(
+          'Status: ' + responseBody.status_code +
+          '\nMessage: ' + responseBody.message
+        )
+        next(createError(500))
+      }
     } catch (error) {
-      
+      next(error)
     }
   }
 }
