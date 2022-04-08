@@ -37,13 +37,7 @@ const authenticateJWT = (req, res, next) => {
 
     const payload = jwt.verify(token, publicKey)
 
-    req.user = {
-      username: payload.sub,
-      firstName: payload.given_name,
-      lastName: payload.family_name,
-      email: payload.email,
-      permissionLevel: payload.x_permission_level
-    }
+    req.user = payload.sub
 
     next()
   } catch (err) {

@@ -26,9 +26,9 @@ export class ImgController {
    */
   async readImage (req, res, next) {
     try {
-      const images = await Image.find()
+      const images = await Image.find({ owner: req.user })
 
-      res.json(images)
+      res.status(200).json(images)
     } catch (error) {
       next(error)
     }
@@ -85,7 +85,7 @@ export class ImgController {
           imageId: resBodyImageServer.id,
           description: req.body.description,
           location: req.body.location,
-          owner: req.user.username
+          owner: req.user
         })
 
         await image.save()

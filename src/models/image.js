@@ -17,11 +17,19 @@ const schema = new mongoose.Schema({
     required: [true, 'Image URL is required.'],
     validate: [isURL, 'Please provide a valid URL to the image.']
   },
+  imageId: {
+    type: String,
+    required: [true, 'Image ID is required.']
+  },
   description: {
     type: String
   },
   location: {
     type: String
+  },
+  owner: {
+    type: String,
+    required: [true, 'Owner is required.']
   },
   timestamps: true,
   toJSON: {
@@ -34,6 +42,8 @@ const schema = new mongoose.Schema({
     transform: function (doc, ret) {
       delete ret._id
       delete ret.__v
+      delete ret.imageId
+      delete ret.owner
     },
     virtuals: true // ensure virtual fields are serialized
   }
