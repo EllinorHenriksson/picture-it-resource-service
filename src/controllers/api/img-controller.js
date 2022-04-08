@@ -13,6 +13,8 @@ import { Image } from '../../models/image.js'
 
 const { isBase64 } = validator
 
+const URL_IMAGE_SERVER = 'https://courselab.lnu.se/picture-it/images/api/v1/images/'
+
 /**
  * Encapsulates a controller.
  */
@@ -48,7 +50,7 @@ export class ImgController {
     }
 
     // Send request to image server and return response.
-    return fetch('https://courselab.lnu.se/picture-it/images/api/v1/images', {
+    return fetch(URL_IMAGE_SERVER + req.image.imageId, {
       method: method,
       headers: {
         'Content-Type': 'application/json',
@@ -93,7 +95,13 @@ export class ImgController {
     try {
       const images = await Image.find({ owner: req.user })
 
-      res.status(200).json(images)
+      const alteredImages = images.map(img => {
+        delete img.imageId
+        delete img.owner
+        return img
+      })
+
+      res.status(200).json(alteredImages)
     } catch (error) {
       next(error)
     }
@@ -158,5 +166,55 @@ export class ImgController {
    */
   readImage (req, res, next) {
     res.status(200).json(req.image)
+  }
+
+  /**
+   * Completely updates a specific image.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async updateImgPut (req, res, next) {
+    try {
+      // Validate body content.
+      this.#validateData(req, next)
+
+      // Contact image server.
+      const resImageServer = await this.#contactImageServer(req, 'put')
+
+      // Save response body as an object.
+      const resBodyImageServer = await resImageServer.json()
+
+      // If image successfully created at image server...
+      if (resImageServer.status === 201) {
+        // ...save image in resource database.
+        const image = new Image({
+          imageUrl: resBodyImageServer.imageUrl,
+          imageId: resBodyImageServer.id,
+          description: req.body.description,
+          location: req.body.location,
+          owner: req.user
+        })
+
+        await image.save()
+
+        // Create body for response to client.
+        const resBodyClient = {
+          imageUrl: image.imageUrl,
+          contentType: resBodyImageServer.contentType,
+          createdAt: image.createdAt,
+          updatedAt: image.updatedAt,
+          id: image.id
+        }
+
+        // Send response to client.
+        res.status(201).json(resBodyClient)
+      } else if (resImageServer.status >= 400) {
+        next(createError(500))
+      }
+    } catch (error) {
+      next(error)
+    }
   }
 }
