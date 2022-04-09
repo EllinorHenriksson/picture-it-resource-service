@@ -82,7 +82,7 @@ router.post('/',
 router.get('/:id',
   authenticateJWT,
   hasPermission,
-  (req, res, next) => controller.readImages(req, res, next)
+  (req, res, next) => controller.readImage(req, res, next)
 )
 
 router.put('/:id',

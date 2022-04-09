@@ -30,7 +30,9 @@ const schema = new mongoose.Schema({
   owner: {
     type: String,
     required: [true, 'Owner is required.']
-  },
+  }
+},
+{
   timestamps: true,
   toJSON: {
     /**
@@ -42,6 +44,8 @@ const schema = new mongoose.Schema({
     transform: function (doc, ret) {
       delete ret._id
       delete ret.__v
+      delete ret.imageId
+      delete ret.owner
     },
     virtuals: true // ensure virtual fields are serialized
   }
@@ -52,4 +56,4 @@ schema.virtual('id').get(function () {
 })
 
 // Create a model using the schema.
-export const User = mongoose.model('User', schema)
+export const Image = mongoose.model('Image', schema)

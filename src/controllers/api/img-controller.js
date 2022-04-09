@@ -20,18 +20,6 @@ const URL_IMAGE_SERVER = 'https://courselab.lnu.se/picture-it/images/api/v1/imag
  */
 export class ImgController {
   /**
-   * Alters an image object by removing the properties imageId and owner.
-   *
-   * @param {object} image The original image object.
-   * @returns {object} The altered image object.
-   */
-  #alterImage (image) {
-    delete image.imageId
-    delete image.owner
-    return image
-  }
-
-  /**
    * Validates the data in the request body.
    *
    * @param {object} req - Express request object.
@@ -70,6 +58,12 @@ export class ImgController {
    * @returns {Promise} - A promise that will resolve to a response object.
    */
   async #contactImageServer (req) {
+    // Create request URL.
+    let url = URL_IMAGE_SERVER
+    if (req.method !== 'POST') {
+      url += req.image.imageId
+    }
+
     // Create an options object for the request.
     const options = {
       method: req.method,
@@ -91,10 +85,11 @@ export class ImgController {
     if (Object.keys(body).length) {
       // ...add it to a body property of the options object.
       options.body = JSON.stringify(body)
+      options.headers['Content-Type'] = 'application/json'
     }
 
     // Send request to image server and return response.
-    return fetch(URL_IMAGE_SERVER + req.image.imageId, options)
+    return fetch(url, options)
   }
 
   /**
@@ -132,11 +127,7 @@ export class ImgController {
     try {
       const images = await Image.find({ owner: req.user })
 
-      const alteredImages = images.map(img => {
-        return this.#alterImage(img)
-      })
-
-      res.status(200).json(alteredImages)
+      res.status(200).json(images)
     } catch (error) {
       next(error)
     }
@@ -186,7 +177,7 @@ export class ImgController {
         res.status(201).json(resBodyClient)
       } else if (resImageServer.status >= 400) {
         console.error(
-          'Status: ' + resBodyImageServer.status_code +
+          'Status: ' + resImageServer.status +
           '\nMessage: ' + resBodyImageServer.message
         )
         next(createError(500))
@@ -204,8 +195,7 @@ export class ImgController {
    * @param {Function} next - Express next middleware function.
    */
   readImage (req, res, next) {
-    const alteredImage = this.#alterImage(req.image)
-    res.status(200).json(alteredImage)
+    res.status(200).json(req.image)
   }
 
   /**
@@ -231,7 +221,7 @@ export class ImgController {
         await req.image.save()
 
         // Send response to client.
-        res.status(204)
+        res.status(204).end()
       } else if (response.status >= 400) {
         const responseBody = await response.json()
         console.error(
@@ -290,7 +280,7 @@ export class ImgController {
       }
 
       if (updated) {
-        res.status(204)
+        res.status(204).end()
       } else {
         next(createError(400))
       }
@@ -311,10 +301,11 @@ export class ImgController {
       const response = await this.#contactImageServer(req)
       if (response.status === 204) {
         // ...delete image in resource database.
+        console.log('Image ID: ', req.image.id)
         await Image.findByIdAndDelete(req.image.id)
 
         // Send response to client.
-        res.status(204)
+        res.status(204).end()
       } else if (response.status >= 400) {
         const responseBody = await response.json()
         console.error(

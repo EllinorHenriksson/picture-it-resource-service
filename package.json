@@ -23,7 +23,8 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.1.7",
     "morgan": "^1.10.0",
-    "node-fetch": "^3.2.3"
+    "node-fetch": "^3.2.3",
+    "validator": "^13.7.0"
   },
   "devDependencies": {
     "@lnu/eslint-config": "^1.1.4",
