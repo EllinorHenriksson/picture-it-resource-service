@@ -103,16 +103,10 @@ export class ImgController {
   async loadImage (req, res, next, id) {
     try {
       const image = await Image.findById(id)
-
-      if (!image) {
-        next(createError(404, 'The requested resource was not found.'))
-      }
-
       req.image = image
-
       next()
     } catch (error) {
-      next(error)
+      next(createError(404, 'The requested resource was not found.'))
     }
   }
 
