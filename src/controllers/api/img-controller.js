@@ -41,7 +41,7 @@ export class ImgController {
     }
 
     if (req.method === 'PATCH') {
-      if (!req.body.data && !req.body.contentType && !req.body.description && req.body.location) {
+      if (!req.body.data && !req.body.contentType && !req.body.description && !req.body.location) {
         next(createError(400, 'None of the requested data is provided.'))
       } else if (req.body.data && !isBase64(req.body.data)) {
         next(createError(400, 'The provided data must be base64 endoded.'))
