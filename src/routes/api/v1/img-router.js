@@ -15,16 +15,16 @@ export const router = express.Router()
 const controller = new ImgController()
 
 /**
- * Authenticates requests.
- *
- * If authentication is successful, `req.user`is populated and the
- * request is authorized to continue.
- * If authentication fails, an unauthorized response will be sent.
- *
- * @param {object} req - Express request object.
- * @param {object} res - Express response object.
- * @param {Function} next - Express next middleware function.
- */
+* Authenticates requests.
+*
+* If authentication is successful, `req.user`is populated and the
+* request is authorized to continue.
+* If authentication fails, an unauthorized response will be sent.
+*
+* @param {object} req - Express request object.
+* @param {object} res - Express response object.
+* @param {Function} next - Express next middleware function.
+*/
 const authenticateJWT = (req, res, next) => {
   try {
     const [authenticationScheme, token] = req.headers.authorization?.split(' ')
