@@ -295,8 +295,7 @@ export class ImgController {
       const response = await this.#contactImageServer(req)
       if (response.status === 204) {
         // ...delete image in resource database.
-        console.log('Image ID: ', req.image.id)
-        await Image.findByIdAndDelete(req.image.id)
+        await req.image.remove()
 
         // Send response to client.
         res.status(204).end()
